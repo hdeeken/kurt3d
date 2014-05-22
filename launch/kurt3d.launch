@@ -21,8 +21,14 @@
  <node pkg="kurt3d" type="laserscanner_node" name="laserscanner_node" />
  <node pkg="kurt3d" type="servo_node" name="servo_node" />
 
+ <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter" output="screen">
+		<remap from="scan" to="cleaned_scan" />
+		<remap from="scan_filtered" to="cleaned_scan_filtered" />
+		<rosparam command="load" file="$(find kurt3d)/config/laser_filter.yaml"/>
+	</node>
+
   <node type="laser_scan_assembler" pkg="laser_assembler" name="scan_assembler">
-  <remap from="scan" to="cleaned_scan" />
+  <remap from="scan" to="cleaned_scan_filtered" />
     <param name="max_scans" type="int" value="5000" />
     <param name="fixed_frame" type="string" value="base_link" />
   </node>

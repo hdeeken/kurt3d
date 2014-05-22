@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="use_phidgets_imu" default="false" />
+  <arg name="use_phidgets_imu" default="true" />
 
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find kurt3d)/urdf/kurt3d.urdf.xacro'" />
 

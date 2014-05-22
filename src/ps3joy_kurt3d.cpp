@@ -31,7 +31,7 @@
 #include <geometry_msgs/Twist.h>
 #include <sensor_msgs/Joy.h>
 #include "kurt3d/Scan.h"
-#include "pololu_driver/servo_control.h"
+#include "kurt3d/ServoControl.h"
 
 #define RAD(GRAD) ((GRAD * (float)M_PI) / (float)180)
 
@@ -103,8 +103,8 @@ void ps3joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
     int channel_1 = 2;
     int channel_2 = 1;
 
-    pololu_driver::servo_control msg_x;
-    pololu_driver::servo_control msg_z;
+    kurt3d::ServoControl msg_x;
+    kurt3d::ServoControl msg_z;
 
     double angle_x = (((joy->axes[2]*-1.0+1.0) / 2.0) * (max_pos[channel_1]-min_pos[channel_1])) + min_pos[channel_1];
     double angle_z = (((joy->axes[3]*-1.0+1.0) / 2.0) * (max_pos[channel_2]-min_pos[channel_2])) + min_pos[channel_2];
@@ -127,8 +127,8 @@ void ps3joyCallback(const sensor_msgs::Joy::ConstPtr& joy)
     int channel_2 = 3;
 
 
-    pololu_driver::servo_control msg_x;
-    pololu_driver::servo_control msg_z;
+    kurt3d::ServoControl msg_x;
+    kurt3d::ServoControl msg_z;
 
     double angle_x = (((joy->axes[2]*-1+1.0) / 2.0) * (max_pos[channel_1]-min_pos[channel_1])) + min_pos[channel_1];
     double angle_z = (((joy->axes[3]+1.0) / 2.0) * (max_pos[channel_2]-min_pos[channel_2])) + min_pos[channel_2];
@@ -170,7 +170,7 @@ int main(int argc, char** argv)
 
   client = nh.serviceClient<kurt3d::Scan>("laserscanner_node");
 
-  servo_pub = nh.advertise<pololu_driver::servo_control>("servo_control", 4);
+  servo_pub = nh.advertise<kurt3d::ServoControl>("servo_control", 4);
 
   ros::spin();
 }

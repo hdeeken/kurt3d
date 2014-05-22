@@ -38,6 +38,7 @@ rosbuild_gensrv()
 rosbuild_add_executable(laserscanner_node src/laserscanner_node.cpp)
 rosbuild_add_executable(servo_node src/USBInterface.cpp src/servo_node.cpp)
 rosbuild_add_executable(ps3joy_kurt3d src/ps3joy_kurt3d.cpp)
+rosbuild_add_executable(kurt3d_teleop_keyboard src/kurt3d_teleop_keyboard.cpp)
 
 #target_link_libraries(example ${PROJECT_NAME})
 

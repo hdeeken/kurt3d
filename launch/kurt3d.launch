@@ -1,12 +1,13 @@
 <?xml version="1.0"?>
 <launch>
   <arg name="use_phidgets_imu" default="true" />
+  <arg name="min_angle" default="-50.0" /> #-50.0
+  <arg name="standby_angle" default="25.0" />
+  <arg name="max_angle" default="62.0" /> #62.0
 
   <param name="robot_description" command="$(find xacro)/xacro.py '$(find kurt3d)/urdf/kurt3d.urdf.xacro'" />
 
   <node pkg="robot_state_publisher" type="state_publisher" name="state_publisher" />
-
-
 
   <include file="$(find kurt_base)/launch/kurt_indoor.launch" />
 
@@ -18,8 +19,17 @@
     <arg name="use_phidgets_imu" value="$(arg use_phidgets_imu)" />
   </include>
 
- <node pkg="kurt3d" type="laserscanner_node" name="laserscanner_node" />
- <node pkg="kurt3d" type="servo_node" name="servo_node" />
+ <node pkg="kurt3d" type="laserscanner_node" name="laserscanner_node" output="screen" >
+	 <param name="min_angle" value="$(arg min_angle)" />
+	 <param name="standby_angle" value="$(arg standby_angle)" />
+	 <param name="max_angle" value="$(arg max_angle)" />
+ </node>
+ <node pkg="kurt3d" type="servo_node" name="servo_node" output="screen">
+	 <param name="sleep_after_movement" value="0.02" />
+	<param name="min_angle" value="$(arg min_angle)" />
+	 <param name="standby_angle" value="$(arg standby_angle)" />
+	 <param name="max_angle" value="$(arg max_angle)" />
+ </node>
 
  <node pkg="laser_filters" type="scan_to_scan_filter_chain" name="laser_filter" output="screen">
 		<remap from="scan" to="cleaned_scan" />

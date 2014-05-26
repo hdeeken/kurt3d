@@ -31,6 +31,7 @@
 #include "kurt3d/ServoCommand.h"
 #include <sensor_msgs/JointState.h>
 #include "kurt3d/ServoControl.h"
+#include "kurt3d/ServoTargetControl.h"
 #include <sstream>
 #include "USBInterface.h"
 #include <iostream>
@@ -43,20 +44,21 @@
 #define SERVO_MIN 1000
 
 static ros::Publisher state_pub;
-
+double max_angle, min_angle;
+double sleep_after_movement;
 static sensor_msgs::JointState currentState;
 
-static double min_pos[5] =
+double min_pos[5] =
 {
-    RAD(-50.0),//fertig
+    RAD(-47.0),//fertig
     RAD(-65.0),//fertig
     RAD(-65.0),//fertig
     RAD(-50.0),//fertig
     RAD(-65.0) //fertig
 };
-static double max_pos[5] =
+double max_pos[5] =
 {
-    RAD(60.0),
+    RAD(62.0),
     RAD(45.0),
     RAD(45.0),
     RAD(60.0),
@@ -107,6 +109,8 @@ void moveServo(int channel, double angle, int speed, bool secure)
 
     target += SERVO_MIN;
 
+	ROS_INFO("Move channel %d to target %f", channel, target);
+
     if(secure)
     {
         usb.moveToTarget(channel, target);
@@ -119,7 +123,8 @@ void moveServo(int channel, double angle, int speed, bool secure)
     setJointState(channel, angle);
 
     state_pub.publish(currentState);
-
+    ros::Duration sleep(sleep_after_movement);
+    sleep.sleep();
     std::cout << "Reported servo status: " << std::endl;
 }
 
@@ -148,13 +153,44 @@ void servoCallback(const kurt3d::ServoControl::ConstPtr& req)
 
 }
 
+void servoTargetCallback(const kurt3d::ServoTargetControl::ConstPtr& req)
+{
+     ROS_INFO("A servo movement was requested by topic");
+
+     double target = req->target;
+
+     if(req->target < 1000)
+     {
+         ROS_INFO("Required Angle out of range!");
+         target = 1000;
+     }
+
+     if(req->target  > 2000)
+     {
+         ROS_INFO("Required Angle out of range!");
+         target = 2000;
+     }
+
+      boost::lock_guard<boost::mutex> _(mut());
+
+    USBPololuInterface usb;
+
+    uscSettings settings;
+    usb.setUscSettings(settings);
+
+    usb.setSpeed(0, 0);
+    ROS_INFO("Move channel 0 to target %f", target);
+    usb.setTarget(0, target);
+
+    std::cout << "Reported servo status: " << std::endl;
+
+}
 
 bool nod(kurt3d::ServoCommand::Request  &req,
          kurt3d::ServoCommand::Response &res)
 {
   ROS_INFO("A servo movement was requested by service");
   ROS_INFO("Channel: [%i] Target: [%f] Speed: [%i]",req.channel,req.angle,req.speed);
-
 
   double target = req.angle;
 
@@ -169,7 +205,7 @@ bool nod(kurt3d::ServoCommand::Request  &req,
       ROS_INFO("Required Angle out of range!");
       target = max_pos[req.channel];
   }
-
+  
   moveServo(req.channel, target, req.speed, true);
 
   res.finished = true;
@@ -181,6 +217,13 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "servo_node");
 
   ros::NodeHandle n;
+  ros::NodeHandle n_private("~");
+  n_private.param("sleep_after_movement", sleep_after_movement, 0.01);
+  n_private.param("max_angle", max_angle, -50.0);
+  n_private.param("min_angle", min_angle, 60.0);
+
+  min_pos[0] = RAD(min_angle);
+  max_pos[0] = RAD(max_angle);
 
   // inits the service
   ros::ServiceServer service = n.advertiseService("servo_node", nod);
@@ -190,7 +233,7 @@ int main(int argc, char **argv)
 
   // inits the subscriber
   ros::Subscriber sub = n.subscribe("servo_control", 5, servoCallback);
-
+  ros::Subscriber sub2 = n.subscribe("servo_target_control", 5, servoTargetCallback);
 
   // init the current State
   currentState = sensor_msgs::JointState();

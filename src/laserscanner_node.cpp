@@ -35,10 +35,6 @@
 #include <cstdlib>
 #define _USE_MATH_DEFINES
 
-
-#define MIN_POS ((-50.0 * (float)M_PI) / 180.0)
-#define STANDBY_POS ((-20.0 * (float)M_PI) / 180.0)
-#define MAX_POS ((60.0 * (float)M_PI) / 180.0)
 #define RANGE 1000
 
 static ros::ServiceClient client;
@@ -52,12 +48,14 @@ static sensor_msgs::LaserScan lastPublishedScan;
 static sensor_msgs::LaserScan currentScan;
 static sensor_msgs::LaserScan lastScan;
 
+double min_angle, max_angle, standby_angle;
+double min_pos, max_pos, standby_pos;
+
 void scanCallback(const sensor_msgs::LaserScan::ConstPtr& msg)
 {
   lastScan = currentScan;
   currentScan = *msg;
 }
-
 
 bool scan(kurt3d::Scan::Request  &req,
          kurt3d::Scan::Response &res)
@@ -66,7 +64,7 @@ bool scan(kurt3d::Scan::Request  &req,
     kurt3d::ServoCommand srv;
 
     srv.request.channel = 0;
-    srv.request.angle = MIN_POS;
+    srv.request.angle = min_pos;
     srv.request.speed = 15;
 
     if (client.call(srv))
@@ -88,7 +86,7 @@ bool scan(kurt3d::Scan::Request  &req,
         kurt3d::ServoCommand srv;
         float angle;
 
-        angle = MIN_POS+ (float)i/ (float)RANGE * (MAX_POS-MIN_POS);
+        angle = min_pos+ (float) i / (float) RANGE * (max_pos-min_pos);
 
         ROS_INFO("angle: [%f]",angle);
 
@@ -141,7 +139,7 @@ bool scan(kurt3d::Scan::Request  &req,
 
 
     srv.request.channel = 0;
-    srv.request.angle = STANDBY_POS;
+    srv.request.angle = standby_pos;
     srv.request.speed = 10;
 
     if (client.call(srv))
@@ -167,6 +165,14 @@ int main(int argc, char **argv)
 
 
   ros::NodeHandle n;
+  ros::NodeHandle n_private("~");
+  n_private.param("max_angle", max_angle, -50.0);
+  n_private.param("standard_angle", standby_angle, 20.0);
+  n_private.param("min_angle", min_angle, 60.0);
+
+  min_pos = ((min_angle * (float)M_PI) / 180.0);
+  standby_pos = (( standby_angle * (float)M_PI) / 180.0);
+  max_pos = ((max_angle * (float)M_PI) / 180.0);
 
   client = n.serviceClient<kurt3d::ServoCommand>("servo_node");
   pointCloudClient = n.serviceClient<laser_assembler::AssembleScans2>("assemble_scans2");
@@ -179,7 +185,6 @@ int main(int argc, char **argv)
 
   // inits the subscriber
   ros::Subscriber sub = n.subscribe("scan", 100, scanCallback);
-
 
   // inits the service
   ros::ServiceServer service = n.advertiseService("laserscanner_node", scan);
